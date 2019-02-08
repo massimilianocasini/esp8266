@@ -8,14 +8,15 @@
 #define RESETWIFI_PIN 0
 // const int ledPin = 0; // GPIO0 LED
 int buttonPin = 2; // GPIO2 INGRESSO
-
+int chipId = ESP.getChipId()
+    
 // MQTT server settings static/global DNS definitions.
 const char* MQTT_SERVER = "raspberrypi"; // Mosquitto server.
 const int MQTT_PORT = 1883;              // Your server port.
 const char* MQTT_CLIENT_ID = "ESP8266_IN";  // Client name.
 //const char* MQTT_USER = "xxxxxxxx";            // Your xxxxxxxx MQTT server user.
 //const char* MQTT_PASS = "xxxxxxxxxxxx";        // Your xxxxxxxxxxxx MQTT server user password.
-const char* MQTT_TOPIC = "events"; // MQTT topics
+const char* MQTT_TOPIC = "events/"+chipId; // MQTT topics
 
 WiFiClient wifiClient; // Declares a ESP8266WiFi client.
 PubSubClient clientmqtt(wifiClient); // Declare a MQTT client.
@@ -32,8 +33,7 @@ void setup() {
     pinMode(RESETWIFI_PIN, INPUT); //Inizializzazione PIN RESET WIFI
     pinMode(buttonPin, INPUT); // Inizializzazione PIN INGRESSO
     bouncer.attach(buttonPin, INPUT_PULLUP); // Setup pushbutton Bouncer object
-    bouncer.interval(5); // Sets the debounce interval in milliseconds.
-    
+    bouncer.interval(5); // Sets the debounce interval in milliseconds. 
     wifiManager.autoConnect(); 
     clientmqtt.setServer(MQTT_SERVER, 1883);
 }
@@ -73,7 +73,7 @@ void loop() {
 void reconnect() {
   while (!clientmqtt.connected()) {
     Serial.println("Connessione a server MQTT...");
-    if (clientmqtt.connect("ESP8266Client", mqttUser, mqttPassword )) {
+    if (clientmqtt.connect(MQTT_CLIENT_ID, mqttUser, mqttPassword )) {
        Serial.println("connesso");  
      } else {
       Serial.print("fallito con errore: ");
