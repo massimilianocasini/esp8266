@@ -10,35 +10,32 @@
 int buttonPin = 2; // GPIO2 INGRESSO
 
 // MQTT server settings static/global DNS definitions.
-const char* MQTT_SERVER = "raspberrypi"; // Test  mosquitto server (remove xxxx.).
-const int MQTT_PORT = 1883;                   // Your server port.
+const char* MQTT_SERVER = "raspberrypi"; // Mosquitto server.
+const int MQTT_PORT = 1883;              // Your server port.
 const char* MQTT_CLIENT_ID = "ESP8266_IN";  // Client name.
 //const char* MQTT_USER = "xxxxxxxx";            // Your xxxxxxxx MQTT server user.
 //const char* MQTT_PASS = "xxxxxxxxxxxx";        // Your xxxxxxxxxxxx MQTT server user password.
 const char* MQTT_TOPIC = "events"; // MQTT topics
 
 WiFiClient wifiClient; // Declares a ESP8266WiFi client.
-PubSubClient client(wifiClient); // Declare a MQTT client.
+PubSubClient clientmqtt(wifiClient); // Declare a MQTT client.
 Bounce bouncer = Bounce(); // Initialise the Pushbutton Bouncer object
 WiFiManager wifiManager; //WiFiManager. Local initialization. Once its business is done, there is no need to keep it around
 
 void setup() {
-    // You can open the Arduino IDE Serial Monitor window to see what the code is doing
     Serial.begin(115200); // Serial connection from ESP-01 via 3.3v console cable
     Serial.setDebugOutput(false); 
     delay(3000); //Ritardo per inizializzare seriale;
     Serial.println("avvio");
     Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
     
-    pinMode(RESETWIFI_PIN, INPUT);
-  //  pinMode(ledPin, OUTPUT); // Inizializzazione PIN LED
+    pinMode(RESETWIFI_PIN, INPUT); //Inizializzazione PIN RESET WIFI
     pinMode(buttonPin, INPUT); // Inizializzazione PIN INGRESSO
-    //digitalWrite(ledPin, HIGH); // Switch the on-board LED off to start with
     bouncer.attach(buttonPin, INPUT_PULLUP); // Setup pushbutton Bouncer object
     bouncer.interval(5); // Sets the debounce interval in milliseconds.
     
     wifiManager.autoConnect(); 
-    client.setServer(MQTT_SERVER, 1883);
+    clientmqtt.setServer(MQTT_SERVER, 1883);
 }
 
 void checkButton()  {
@@ -59,66 +56,30 @@ void checkButton()  {
 }
 
 void loop() {
-    if (!client.connected()) {
+    if (!clientmqtt.connected()) {  // verifica stato della connessione al server MQTT, se false chiama funzione di riconnessione
       reconnect();
     }
-    client.loop();
+    clientmqtt.loop(); //Controlla messaggi e mantiene la connessione al server MQTT
     checkButton();
    // ConnectMqtt();
    //client.subscribe(mqtt_topic);
     //  PublishInformation(); // Publish information in MQTT.
     bouncer.update(); //Appena ricevi un update dal PIN bouncher
     if (bouncer.rose()) {
-        client.publish(MQTT_TOPIC, "Alarm");
+        clientmqtt.publish(MQTT_TOPIC, "Alarm"); //Pubblica nel Topic il messaggio
         Serial.println("Inviato a MQTT Alarm");
     }
 }
-
-//bool ConnectWiFi()  {
-//    if (WiFi.status() != WL_CONNECTED) {
-//                //    Serial.print("Stato WIFI ")
-//                //   Serial.println(WiFi.status()) //Stampa stato WIFI
-//        Serial.print("Reconnecting [");
-//        Serial.print(WiFi.SSID());
-//        Serial.println("]...");
-//        WiFi.begin();
-//        if (WiFi.waitForConnectResult() != WL_CONNECTED)
-//        Serial.println("Non connesso ...");   {
-//            return false;
-//        }
-//        Serial.print("IP address: ");
-//        Serial.println(WiFi.localIP());
-//    }
-//return true;
-//}
-//
-//bool ConnectMqtt() {
-//    
-//            client.subscribe(mqtt_topic);
-//       
-//}
 void reconnect() {
-  // Loop until we're reconnected
-    while (!client.connected()) {
-      Serial.print("Attendo connessione MQTT ...");
-      // Create a random client ID
-      String clientId = "ESP8266Client-";
-      clientId += String(random(0xffff), HEX);
-      // Attempt to connect
-      if (client.connect(clientId.c_str())) {
-        Serial.println("Connesso");
-        // Once connected, publish an announcement...
-        client.publish(MQTT_TOPIC, "Hello world");
-        Serial.println("Inviato a MQTT Hello world");
-        // ... and resubscribe
-        //client.subscribe("inTopic"); 
-      } 
-      else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-      }
-    }
+  while (!clientmqtt.connected()) {
+    Serial.println("Connessione a server MQTT...");
+    if (clientmqtt.connect("ESP8266Client", mqttUser, mqttPassword )) {
+       Serial.println("connesso");  
+     } else {
+      Serial.print("fallito con errore: ");
+      Serial.print(clientmqtt.state());
+      Serial.print("Attendo 2 secondi e riprovo ...")
+      delay(2000);
+     }
+  }
 }
