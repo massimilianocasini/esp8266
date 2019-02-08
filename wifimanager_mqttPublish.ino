@@ -5,18 +5,18 @@
 #include <ESP8266WebServer.h>     //Local WebServer used to serve the configuration portal
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
 #include  <ESP8266mDNS.h>     //mDSN library (needed to detect local mqtt transparently)
-#define RESETWIFI_PIN 0
-// const int ledPin = 0; // GPIO0 LED
-int buttonPin = 2; // GPIO2 INGRESSO
-int chipId = ESP.getChipId()
+#define RESETWIFI_PIN 0 //Definizione GPI0
+#define BUTTONPIN 2 // Definizione GPIO2 INGRESSO
+
+
     
 // MQTT server settings static/global DNS definitions.
 const char* MQTT_SERVER = "raspberrypi"; // Mosquitto server.
 const int MQTT_PORT = 1883;              // Your server port.
 const char* MQTT_CLIENT_ID = "ESP8266_IN";  // Client name.
-//const char* MQTT_USER = "xxxxxxxx";            // Your xxxxxxxx MQTT server user.
-//const char* MQTT_PASS = "xxxxxxxxxxxx";        // Your xxxxxxxxxxxx MQTT server user password.
-const char* MQTT_TOPIC = "events/"+chipId; // MQTT topics
+const char* MQTT_USER = "xxxxxxxx";            // Your xxxxxxxx MQTT server user.
+const char* MQTT_PASS = "xxxxxxxxxxxx";        // Your xxxxxxxxxxxx MQTT server user password.
+const char* MQTT_TOPIC = "eventi"; // MQTT topics
 
 WiFiClient wifiClient; // Declares a ESP8266WiFi client.
 PubSubClient clientmqtt(wifiClient); // Declare a MQTT client.
@@ -31,8 +31,8 @@ void setup() {
     Serial.printf("MAC: %s\n", WiFi.macAddress().c_str());
     
     pinMode(RESETWIFI_PIN, INPUT); //Inizializzazione PIN RESET WIFI
-    pinMode(buttonPin, INPUT); // Inizializzazione PIN INGRESSO
-    bouncer.attach(buttonPin, INPUT_PULLUP); // Setup pushbutton Bouncer object
+    pinMode(BUTTONPIN, INPUT); // Inizializzazione PIN INGRESSO
+    bouncer.attach(BUTTONPIN, INPUT_PULLUP); // Setup pushbutton Bouncer object
     bouncer.interval(5); // Sets the debounce interval in milliseconds. 
     wifiManager.autoConnect(); 
     clientmqtt.setServer(MQTT_SERVER, 1883);
@@ -64,21 +64,29 @@ void loop() {
    // ConnectMqtt();
    //client.subscribe(mqtt_topic);
     //  PublishInformation(); // Publish information in MQTT.
-    bouncer.update(); //Appena ricevi un update dal PIN bouncher
+    bouncer.update(); // Ricevi update dal bouncher
     if (bouncer.rose()) {
-        clientmqtt.publish(MQTT_TOPIC, "Alarm"); //Pubblica nel Topic il messaggio
-        Serial.println("Inviato a MQTT Alarm");
-    }
+        clientmqtt.publish(MQTT_TOPIC, "0"); //Pubblica nel Topic il messaggio
+        Serial.print("Inviato a MQTT Topic: [");
+        Serial.print(MQTT_TOPIC);
+        Serial.println("], valore: GPIO_APERTO --> 0");
+     }
+     else if (bouncer.fell()) {
+        clientmqtt.publish(MQTT_TOPIC, "1"); //Pubblica nel Topic il messaggio
+        Serial.print("Inviato a MQTT Topic: [");
+        Serial.print(MQTT_TOPIC);
+        Serial.println("], valore: GPIO2_CHIUSO --> 1");
+     }
 }
 void reconnect() {
   while (!clientmqtt.connected()) {
     Serial.println("Connessione a server MQTT...");
-    if (clientmqtt.connect(MQTT_CLIENT_ID, mqttUser, mqttPassword )) {
+    if (clientmqtt.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS )) {
        Serial.println("connesso");  
      } else {
       Serial.print("fallito con errore: ");
-      Serial.print(clientmqtt.state());
-      Serial.print("Attendo 2 secondi e riprovo ...")
+      Serial.println(clientmqtt.state());
+      Serial.print("Attendo 2 secondi e riprovo ...");
       delay(2000);
      }
   }
