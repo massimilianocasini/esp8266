@@ -92,7 +92,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println();
 
   // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1') {
+  if ((char)payload[0] == '0') {
     digitalWrite(RELAY, LOW);
     Serial.println("RELE LOW");// GPIO a massa
   } else {
