@@ -66,16 +66,16 @@ void loop() {
     //  PublishInformation(); // Publish information in MQTT.
     bouncer.update(); // Ricevi update dal bouncher
     if (bouncer.rose()) {
-        clientmqtt.publish(MQTT_TOPIC, "0"); //Pubblica nel Topic il messaggio
-        Serial.print("Inviato a MQTT Topic: [");
-        Serial.print(MQTT_TOPIC);
-        Serial.println("], valore: GPIO_APERTO --> 0");
-     }
-     else if (bouncer.fell()) {
         clientmqtt.publish(MQTT_TOPIC, "1"); //Pubblica nel Topic il messaggio
         Serial.print("Inviato a MQTT Topic: [");
         Serial.print(MQTT_TOPIC);
-        Serial.println("], valore: GPIO2_CHIUSO --> 1");
+        Serial.println("], valore: GPIO_APERTO --> 1");
+     }
+     else if (bouncer.fell()) {
+        clientmqtt.publish(MQTT_TOPIC, "0"); //Pubblica nel Topic il messaggio
+        Serial.print("Inviato a MQTT Topic: [");
+        Serial.print(MQTT_TOPIC);
+        Serial.println("], valore: GPIO2_CHIUSO --> 0");
      }
 }
 void reconnect() {
