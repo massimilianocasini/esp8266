@@ -9,12 +9,16 @@
 #define RELAY 2 //Definizione GPIO2
     
 // MQTT server settings static/global DNS definitions.
-const char* MQTT_SERVER = "raspberrypi"; // Mosquitto server.
+const char* MQTT_SERVER = "openhabianpi"; // Mosquitto server.
 const int MQTT_PORT = 1883;              // Your server port.
 const char* MQTT_CLIENT_ID = "ESP8266_OUT";  // Client name.
 const char* MQTT_USER = "xxxxxxxx";            // Your xxxxxxxx MQTT server user.
 const char* MQTT_PASS = "xxxxxxxxxxxx";        // Your xxxxxxxxxxxx MQTT server user password.
-const char* MQTT_TOPIC = "eventi"; // MQTT topics
+const char* MQTT_TOPIC_E = "eventi"; // MQTT topics eventi
+const char* MQTT_TOPIC_A = "alive_out"; // MQTT topics sopravvivenza
+long lastMsg = 0;
+char msg[50];
+int value = 0;
 
 WiFiClient wifiClient; // Declares a ESP8266WiFi client.
 PubSubClient client(wifiClient); // Declare a MQTT client.
@@ -32,9 +36,9 @@ void setup() {
     wifiManager.autoConnect(); 
     client.setServer(MQTT_SERVER, 1883);
     //facciamo il subscribe del topic(canale) che vogliamo
-    client.subscribe(MQTT_TOPIC);
+    client.subscribe(MQTT_TOPIC_E);
     Serial.print("Sottoscritto topic [");
-    Serial.print(MQTT_TOPIC);
+    Serial.print(MQTT_TOPIC_E);
     Serial.println("]");
     client.setCallback(callback);
 }
@@ -56,22 +60,15 @@ void checkButton()  {
     }
 }
 
-void loop() {
-    if (!client.connected()) {  // verifica stato della connessione al server MQTT, se false chiama funzione di riconnessione
-      reconnect();
-    }
-    client.loop(); //Controlla messaggi e mantiene la connessione al server MQTT
-    checkButton();
-   
-}
+
 void reconnect() {
   while (!client.connected()) {
-    Serial.println("Connessione a server MQTT...");
+    Serial.print("Connessione a server MQTT...");
     if (client.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS )) {
        Serial.println("connesso");
-       client.subscribe(MQTT_TOPIC);
+       client.subscribe(MQTT_TOPIC_E);
        Serial.print("Sottoscritto topic [");
-       Serial.println(MQTT_TOPIC);
+       Serial.print(MQTT_TOPIC_E);
        Serial.println("]");  
      } else {
       Serial.print("fallito con errore: ");
@@ -83,7 +80,7 @@ void reconnect() {
 }
 //funzione di callback invocata quando riceviamo un messaggio MQTT
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrivito [");
+  Serial.print("Message arrivato [");
   Serial.print(topic);
   Serial.print("] ");
   for (int i = 0; i < length; i++) {
@@ -99,4 +96,24 @@ void callback(char* topic, byte* payload, unsigned int length) {
     digitalWrite(RELAY, HIGH);// GPIO a positivo
     Serial.println("RELE HIGH");  
   }
+}
+
+void loop() {
+    if (!client.connected()) { // verifica stato della connessione al server MQTT, se false chiama funzione di riconnessione
+      Serial.print("Errore connessione:");
+      Serial.println(client.state());
+      delay(2000);
+      reconnect();
+    }
+    client.loop(); //Controlla messaggi e mantiene la connessione al server MQTT
+    checkButton();
+    long now = millis();
+    if (now - lastMsg > 10000) {
+      lastMsg = now;
+      ++value;
+      snprintf (msg, 75, "hello world #%ld", value);
+      Serial.print("Publish message: ");
+      Serial.println(msg);
+      client.publish(MQTT_TOPIC_A, msg);
+    }
 }
