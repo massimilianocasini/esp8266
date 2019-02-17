@@ -14,7 +14,12 @@ const int MQTT_PORT = 1883;              // Your server port.
 const char* MQTT_CLIENT_ID = "ESP8266_IN";  // Client name.
 const char* MQTT_USER = "xxxxxxxx";            // Your xxxxxxxx MQTT server user.
 const char* MQTT_PASS = "xxxxxxxxxxxx";        // Your xxxxxxxxxxxx MQTT server user password.
-const char* MQTT_TOPIC = "eventi"; // MQTT topics
+const char* MQTT_TOPIC_E = "eventi"; // MQTT topics eventi
+const char* MQTT_TOPIC_A = "alive_in"; // MQTT topics sopravvivenza
+
+long lastMsg = 0;
+char msg[50];
+int value = 0;
 
 WiFiClient wifiClient; // Declares a ESP8266WiFi client.
 PubSubClient client(wifiClient); // Declare a MQTT client.
@@ -53,29 +58,7 @@ void checkButton()  {
     }
 }
 
-void loop() {
-    if (!client.connected()) {  // verifica stato della connessione al server MQTT, se false chiama funzione di riconnessione
-      reconnect();
-    }
-    client.loop(); //Controlla messaggi e mantiene la connessione al server MQTT
-    checkButton();
-   // ConnectMqtt();
-   //client.subscribe(mqtt_topic);
-    //  PublishInformation(); // Publish information in MQTT.
-    bouncer.update(); // Ricevi update dal bouncher
-    if (bouncer.rose()) {
-        client.publish(MQTT_TOPIC, "1"); //Pubblica nel Topic il messaggio
-        Serial.print("Inviato a MQTT Topic: [");
-        Serial.print(MQTT_TOPIC);
-        Serial.println("], valore: GPIO_APERTO --> 1");
-     }
-     else if (bouncer.fell()) {
-        client.publish(MQTT_TOPIC, "0"); //Pubblica nel Topic il messaggio
-        Serial.print("Inviato a MQTT Topic: [");
-        Serial.print(MQTT_TOPIC);
-        Serial.println("], valore: GPIO2_CHIUSO --> 0");
-     }
-}
+
 void reconnect() {
   while (!client.connected()) {
     Serial.print("Connessione a server MQTT...");
@@ -88,4 +71,36 @@ void reconnect() {
       delay(2000);
      }
   }
+}
+void loop() {
+    if (!client.connected()) {  // verifica stato della connessione al server MQTT, se false chiama funzione di riconnessione
+      Serial.print("Errore connessione:");
+      Serial.println(client.state());
+      delay(2000);
+      reconnect();
+    }
+    client.loop(); //Controlla messaggi e mantiene la connessione al server MQTT
+    checkButton();
+    bouncer.update(); // Ricevi update dal bouncher
+    if (bouncer.rose()) {
+        client.publish(MQTT_TOPIC_E, "1"); //Pubblica nel Topic il messaggio
+        Serial.print("Inviato a MQTT Topic: [");
+        Serial.print(MQTT_TOPIC_E);
+        Serial.println("], valore: GPIO_APERTO --> 1");
+     }
+     else if (bouncer.fell()) {
+        client.publish(MQTT_TOPIC_E, "0"); //Pubblica nel Topic il messaggio
+        Serial.print("Inviato a MQTT Topic: [");
+        Serial.print(MQTT_TOPIC_E);
+        Serial.println("], valore: GPIO2_CHIUSO --> 0");
+     }
+     long now = millis();
+     if (now - lastMsg > 10000) {
+      lastMsg = now;
+      ++value;
+      snprintf (msg, 75, "hello world #%ld", value);
+      Serial.print("Publish message: ");
+      Serial.println(msg);
+      client.publish(MQTT_TOPIC_A, msg);
+    }
 }
