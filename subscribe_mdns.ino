@@ -21,8 +21,11 @@ char msg[50];
 int value = 0;
 
 WiFiClient wifiClient; // Declares a ESP8266WiFi client.
-PubSubClient _mqqtClient(wifiClient); // Declare a MQTT client.
+PubSubClient _mqttClient(wifiClient); // Declare a MQTT client.
 WiFiManager wifiManager; //WiFiManager. Local initialization. Once its business is done, there is no need to keep it around
+// MQTT server settings dynamic (mDNS) local definitions.
+const char* MQTT_SERVER_MNDS = "prodino_mqtt"; // Please note that the trailing ".local" suffix is implicitly defined !!!
+
 
 void setup(void) {
     Serial.begin(115200); // Serial connection from ESP-01 via 3.3v console cable
@@ -34,13 +37,13 @@ void setup(void) {
     pinMode(RESETWIFI_PIN, INPUT); //Inizializzazione PIN RESET WIFI
     pinMode(RELAY, OUTPUT);
     wifiManager.autoConnect(); 
-    _mqqtClient.setServer(MQTT_SERVER, 1883);
+    _mqttClient.setServer(MQTT_SERVER, 1883);
     //facciamo il subscribe del topic(canale) che vogliamo
-    _mqqtClient.subscribe(MQTT_TOPIC_E);
+    _mqttClient.subscribe(MQTT_TOPIC_E);
     Serial.print("Sottoscritto topic [");
     Serial.print(MQTT_TOPIC_E);
     Serial.println("]");
-    _mqqtClient.setCallback(callback);
+    _mqttClient.setCallback(callback);
 }
 
 void checkButton()  {
@@ -62,17 +65,17 @@ void checkButton()  {
 
 
 void reconnect() {
-  while (!_mqqtClient.connected()) {
+  while (!_mqttClient.connected()) {
     Serial.print("Connessione a server MQTT...");
-    if (_mqqtClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS )) {
+    if (_mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS )) {
        Serial.println("connesso");
-       _mqqtClient.subscribe(MQTT_TOPIC_E);
+       _mqttClient.subscribe(MQTT_TOPIC_E);
        Serial.print("Sottoscritto topic [");
        Serial.print(MQTT_TOPIC_E);
        Serial.println("]");  
      } else {
       Serial.print("fallito con errore: ");
-      Serial.println(_mqqtClient.state());
+      Serial.println(_mqttClient.state());
       Serial.print("Attendo 2 secondi e riprovo ...");
       delay(2000);
      }
@@ -104,9 +107,10 @@ void loop(void) {
         {
             return;
         }
+        
     _mqttClient.loop();
     // Publish information in MQTT.
-    PublishInformation();  
+  //  PublishInformation();  
     checkButton();
     long now = millis();
     if (now - lastMsg > 10000) {
@@ -115,7 +119,7 @@ void loop(void) {
       snprintf (msg, 75, "hello world #%ld", value);
       Serial.print("Publish message: ");
       Serial.println(msg);
-      _mqqtClient.publish(MQTT_TOPIC_A, msg);
+      _mqttClient.publish(MQTT_TOPIC_A, msg);
     }
 }
 
@@ -159,7 +163,7 @@ bool ConnectMqtt()
     if (_mqttClient.connect(MQTT_CLIENT_ID))
     {
     Serial.println("Connected.");
-    _mqttClient.subscribe(TOPIC_COMMAND);
+//    _mqttClient.subscribe(TOPIC_COMMAND);
     }
     else
     {
@@ -198,7 +202,7 @@ bool ConnectMqtt()
 
                 if (_mqttClient.connect(MQTT_CLIENT_ID)) {
                     Serial.println("Connected.");
-                    _mqttClient.subscribe(TOPIC_COMMAND);
+               //     _mqttClient.subscribe(TOPIC_COMMAND);
                 } 
                 else {
                     Serial.print("failed, rc=");
@@ -212,4 +216,5 @@ bool ConnectMqtt()
         delay(5000);
     }
     return _mqttClient.connected();
-}
+  }
+ }
